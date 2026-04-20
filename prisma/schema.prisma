@@ -1,0 +1,37 @@
+datasource db {
+  provider = "sqlite"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model UserSettings {
+  id         Int      @id @default(autoincrement())
+  dayStart   String
+  dayEnd     String
+  dailyValue Float    @default(10000)
+  timezone   String   @default("UTC")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Task {
+  id        Int      @id @default(autoincrement())
+  title     String
+  startTime String
+  endTime   String
+  category  String   @default("Work")
+  date      String
+  createdAt DateTime @default(now())
+
+  @@index([date])
+}
+
+model DailyConfig {
+  id             Int     @id @default(autoincrement())
+  date           String  @unique
+  dailyValue     Float   @default(10000)
+  investmentGoal Float   @default(50)
+  goalHit        Boolean @default(false)
+}

@@ -1,36 +1,58 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Time Wallet
 
-## Getting Started
+Track your day as a finite monetary asset. Every second has a cost; logging productive work converts spent time into invested time.
 
-First, run the development server:
+Built with Next.js 16, React 19, Prisma 7, and SQLite (via `better-sqlite3`).
+
+## Getting started
 
 ```bash
+cp .env.example .env
+npm install
+npm run db:migrate   # applies Prisma migrations and generates the client
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Environment variables
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Name           | Description                                          | Example                                |
+| -------------- | ---------------------------------------------------- | -------------------------------------- |
+| `DATABASE_URL` | SQLite connection string (libSQL / Postgres also ok) | `file:./prisma/dev.db`                 |
 
-## Learn More
+See `.env.example` for more examples.
 
-To learn more about Next.js, take a look at the following resources:
+## Scripts
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+| Script               | What it does                                         |
+| -------------------- | ---------------------------------------------------- |
+| `npm run dev`        | Next.js dev server                                   |
+| `npm run build`      | Production build                                     |
+| `npm run start`      | Start the production server                          |
+| `npm run lint`       | ESLint                                               |
+| `npm run typecheck`  | TypeScript type check                                |
+| `npm run db:migrate` | Create + apply a new migration locally               |
+| `npm run db:deploy`  | Apply existing migrations (use this in CI / on prod) |
+| `npm run db:studio`  | Open Prisma Studio                                   |
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Deployment notes
 
-## Deploy on Vercel
+This app persists data in a SQLite file. A few implications:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- **Works on**: any host with a persistent filesystem — Fly.io, Railway, Render, a VPS, or your own box. Mount a volume at a stable path and point `DATABASE_URL` at it (e.g. `file:/data/time-wallet.db`).
+- **Does not work on Vercel / Netlify / other serverless hosts** as-is — their filesystem is read-only or ephemeral per invocation, so writes would be lost. For those you need to swap to Postgres, Turso / libSQL, or another network-accessible database. Update `provider` in `prisma/schema.prisma` and re-run `db:migrate`.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+On the target host:
+
+```bash
+npm ci
+npm run db:deploy
+npm run build
+npm run start
+```
+
+## Known limitations
+
+- **Single-user.** The app has no authentication — there is one global `UserSettings` row and tasks aren't scoped to users. Don't expose a publicly-reachable instance. Adding auth (Clerk, Auth.js, Lucia, etc.) requires a product decision and schema changes (add `userId` to every model).
+- Time ranges are minute-precision (`HH:mm`) and cannot cross midnight.
